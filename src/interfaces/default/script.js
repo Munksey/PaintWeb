@@ -277,6 +277,10 @@ pwlib.gui = function (app) {
     this.canvasResizer.events.add('guiResizeStart', this.canvasResizeStart);
     this.canvasResizer.events.add('guiResizeEnd',   this.canvasResizeEnd);
 
+    if (!config.imageResizeable) {
+      resizeHandle.style.display = 'none';
+    }
+
     // Setup the viewport resizer.
     var resizeHandle = this.elems.viewportResizer;
     if (!resizeHandle) {
@@ -296,6 +300,10 @@ pwlib.gui = function (app) {
     this.viewportResizer.events.add('guiResizeMouseMove', 
         this.viewportResizeMouseMove);
     this.viewportResizer.events.add('guiResizeEnd', this.viewportResizeEnd);
+
+    if (!config.viewportResizeable) {
+      resizeHandle.style.display = 'none';
+    }
 
     if ('statusMessage' in this.elems) {
       this.elems.statusMessage._prevText = false;
@@ -853,11 +861,15 @@ pwlib.gui = function (app) {
 
     var selCrop   = this.commands.selectionCrop,
         selFill   = this.commands.selectionFill,
-        selDelete = this.commands.selectionDelete;
+        selDelete = this.commands.selectionDelete,
+        selFlipHorizontal = this.commands.selectionFlipHorizontal,
+        selFlipVertical = this.commands.selectionFlipVertical;
 
     selCrop.className   += classDisabled;
     selFill.className   += classDisabled;
     selDelete.className += classDisabled;
+    selFlipHorizontal.className += classDisabled;
+    selFlipVertical.className += classDisabled;
 
     return true;
   };
@@ -1785,7 +1797,8 @@ pwlib.gui = function (app) {
         elems = [_self.commands.selectionCut, _self.commands.selectionCopy, 
         _self.elems.selTab_selectionCut, _self.elems.selTab_selectionCopy, 
         _self.commands.selectionDelete, _self.commands.selectionFill, 
-        _self.commands.selectionCrop];
+        _self.commands.selectionCrop, _self.commands.selectionFlipHorizontal,
+        _self.commands.selectionFlipVertical];
 
     for (var i = 0, n = elems.length; i < n; i++) {
       elem = elems[i];
@@ -1798,7 +1811,10 @@ pwlib.gui = function (app) {
       if (ev.state === ev.STATE_NONE && elemEnabled) {
         elem.className += classDisabled;
       } else if (ev.state === ev.STATE_SELECTED && !elemEnabled) {
-        elem.className = elem.className.replace(classDisabled, '');
+        if (elems[i] !== _self.commands.selectionCrop &&
+          !config.imageResizeable) {
+          elem.className = elem.className.replace(classDisabled, '');
+        }
       }
     }
   };

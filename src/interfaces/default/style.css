@@ -501,7 +501,9 @@
 }
 
 .paintweb_main_selection .paintweb_cmd_selectionCopy,
-.paintweb_main_selection .paintweb_cmd_clipboardPaste { border-left: 0 }
+.paintweb_main_selection .paintweb_cmd_clipboardPaste,
+.paintweb_main_selection .paintweb_cmd_selectionFlipHorizontal,
+.paintweb_main_selection .paintweb_cmd_selectionFlipVertical { border-left: 0 }
 
 .paintweb_cmd_selectionCrop {
   border-top: 0;
@@ -516,19 +518,36 @@
 .paintweb_opt_selectionTransparent, .paintweb_opt_selectionTransform {
   background: #f2f2f2;
   border: 1px solid #d6d6d6;
-  left: 110px;
+  left: 170px;
+  position: absolute;
   line-height: 31px;
   margin: 0;
   padding: 0 5px;
-  position: absolute;
   top: 0;
   vertical-align: middle;
-  width: 15em
+  width: 150px; /* 15em */
 }
 
 .paintweb_opt_selectionTransform {
   border-top: 0;
   top: 33px
+}
+
+.paintweb_opt_selectionRotate {
+  background: #f2f2f2;
+  border: 1px solid #d6d6d6;
+  left: 340px;
+  position: absolute;
+  line-height: 31px;
+  margin: 0;
+  padding: 0 5px;
+  top: 0;
+  vertical-align: middle;
+  width: 160px; /* 15em */
+}
+
+.paintweb_cfg_selection_rotation {
+  width: 4em;
 }
 
 .paintweb_opt_fontFamily label, .paintweb_opt_fontSize label { display: none }
@@ -970,6 +989,10 @@
 .paintweb_cmd_selectionDelete a { background-image: url('icons/selectionDelete.png') }
 
 .paintweb_cmd_selectionFill a { background-image: url('icons/selectionFill.png') }
+
+.paintweb_cmd_selectionFlipHorizontal a { background-image: url('icons/selectionFlipHorizontal.png') }
+
+.paintweb_cmd_selectionFlipVertical a { background-image: url('icons/selectionFlipVertical.png') }
 
 .paintweb_cmd_imageSave a { background-image: url('icons/imageSave.png') }
 

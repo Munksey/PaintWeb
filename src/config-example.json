@@ -119,6 +119,22 @@
   "imageHeight": 300,
 
   /**
+   * Whether or not the image is resizeable.
+   *
+   * @type Boolean
+   * @default true
+   */
+  "imageResizeable": true,
+
+  /**
+   * Whether or not the viewport is resizeable.
+   *
+   * @type Boolean
+   * @default true
+   */
+  "viewportResizeable": true,
+
+  /**
    * Image preload. The image you want to display when PaintWeb loads. This must 
    * be a reference to an HTML Image element.
    *
@@ -386,6 +402,14 @@
      * @default 3
      */
     "borderWidth": 3,
+
+    /**
+     * How much to rotate (in degrees) the selection.
+     *
+     * @type Number
+     * @default 0
+     */
+    "rotation": 0,
 
     /**
      * Keyboard shortcuts for several selection-related commands.

@@ -146,6 +146,8 @@
       <p data-pwId="selTab_selectionCut">Cut selection</p>
       <p data-pwId="selTab_selectionCopy">Copy selection</p>
       <p data-pwId="selTab_clipboardPaste">Clipboard paste</p>
+      <p data-pwCommand="selectionFlipHorizontal">Horizontally invert selection</p>
+      <p data-pwCommand="selectionFlipVertical">Vertically invert selection</p>
 
       <p data-pwCommand="selectionCrop">Crop selection</p>
       <p data-pwCommand="selectionDelete">Delete selection</p>
@@ -158,6 +160,11 @@
       <p class="paintweb_opt_selectionTransform">
         <label><input data-pwConfig="selection.transform" type="checkbox" 
           value="1" /> Transformation mode</label>
+      </p>
+
+      <p class="paintweb_opt_selectionRotate">
+        <label>Rotate <input data-pwConfig="selection.rotation" type="text" 
+          value="0" maxlength="4">&#176; on paste</label>
       </p>
     </div>
 

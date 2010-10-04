@@ -29,6 +29,7 @@
   "errorCpickerUnsupported": "Error: your browser does not implement the get/putImageData methods! The color picker tool cannot be used.",
   "errorCbucketUnsupported": "Error: your browser does not implement the get/putImageData methods! The color bucket tool cannot be used.",
   "errorClipboardUnsupported": "Error: your browser does not support get/putImageData! Clipboard operations like cut/copy/paste cannot be used.",
+  "errorFlippingUnsupported": "Error: your browser does not support get/putImageData! Image flipping cannot be used.",
   "errorTextUnsupported": "Error: your browser does not implement the Canvas Text API! The text tool cannot be used.",
   "errorInsertimg": "The image could not be inserted. Maybe the address does not point to an image.",
   "errorInsertimgHost": "The URL you provided points to a different host. The image cannot be added for security reasons.",
@@ -112,7 +113,9 @@
     "selectionCrop": "Crop selection",
     "selectionCut": "Cut selection",
     "selectionDelete": "Delete selection",
-    "selectionFill": "Fill the selection"
+    "selectionFill": "Fill the selection",
+    "selectionFlipHorizontal": "Flip selection horizontally",
+    "selectionFlipVertical": "Flip selection vertically"
   },
 
   "inputs": {
@@ -141,7 +144,9 @@
       "transform": "Image manipulation",
       "transformTitle": "If checked, the selected pixels will also be dragged/resized when you make changes to the selection. If unchecked, only the selection marquee will be dragged/resized - pixels will remain unaffected by any such changes.",
       "transparent": "Transparent selection",
-      "transparentTitle": "If checked, the background will remain transparent. If unchecked, the background will be filled with the current fill color."
+      "transparentTitle": "If checked, the background will remain transparent. If unchecked, the background will be filled with the current fill color.",
+      "rotation": "Rotate ",
+      "rotationTitle": "Will rotate any pasted content in the amount of degrees specified."
     },
     "text": {
       "bold": "Bold",

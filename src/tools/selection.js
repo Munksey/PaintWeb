@@ -346,6 +346,10 @@ pwlib.tools.selection = function (app) {
     app.commandRegister('selectionCrop',   _self.selectionCrop);
     app.commandRegister('selectionDelete', _self.selectionDelete);
     app.commandRegister('selectionFill',   _self.selectionFill);
+    app.commandRegister('selectionFlipHorizontal', 
+      _self.selectionFlipHorizontal);
+    app.commandRegister('selectionFlipVertical', 
+      _self.selectionFlipVertical);
 
     if (!timer) {
       timer = setInterval(timerFn, app.config.toolDrawDelay);
@@ -390,6 +394,12 @@ pwlib.tools.selection = function (app) {
     app.commandUnregister('selectionCrop');
     app.commandUnregister('selectionDelete');
     app.commandUnregister('selectionFill');
+    app.commandUnregister('selectionFlipHorizontal');
+    app.commandUnregister('selectionFlipVertical');
+
+    // Make sure layer context is not feeling the wrath of
+    // the rotation
+    layerContext.setTransform(1, 0, 0, 1, 0, 0);
 
     return true;
   };
@@ -1053,6 +1063,54 @@ pwlib.tools.selection = function (app) {
   };
 
   /**
+   * Determines the new dimensions for a rotation when given a specific
+   * height and width.
+   *
+   * @param {Number} width The width for which we are rotating.
+   * @param {Number} height The height for which we are rotating.
+   *
+   * @returns {JSON} An array containing width and height.
+   */
+  function rotationDimensions(width, height) {
+    var returnValue = {"width": 0, "height": 0};
+    var radians = config.rotation * Math.PI/180;
+
+    // To help determine the new width and new height, 
+    // divide the width and height by 2 to emulate
+    // a rotation around the origin.
+    width = width/2;
+    height = height/2;
+
+    // Select two adjacent points to rotate. This will
+    // help determine the furthest x points and furthest y
+    // points. Allowing determination of the new height and width.
+    var pointOne = {"x": width, "y": height};
+    var pointTwo = {"x": -width, "y": height};
+
+    // Calculate the points once rotated.
+    var rotatedPointOne = {
+      "x": (pointOne.x * Math.cos(radians)) - (pointOne.y * Math.sin(radians)),
+      "y": (pointOne.x * Math.sin(radians)) + (pointOne.y * Math.cos(radians))
+    };
+    var rotatedPointTwo = {
+      "x": (pointTwo.x * Math.cos(radians)) - (pointTwo.y * Math.sin(radians)),
+      "y": (pointTwo.y * Math.sin(radians)) - (pointTwo.y * Math.cos(radians))
+    };
+
+    // Determine the width and height to use, so the rotation
+    // can be fit within a square.
+    var widthOne = Math.floor(Math.abs(rotatedPointOne.x)*2);
+    var widthTwo = Math.floor(Math.abs(rotatedPointTwo.x)*2);
+    returnValue.width = (widthOne > widthTwo) ? widthOne : widthTwo;
+
+    var heightOne = Math.floor(Math.abs(rotatedPointOne.y)*2);
+    var heightTwo = Math.floor(Math.abs(rotatedPointTwo.y)*2);
+    returnValue.height = (heightOne > heightTwo) ? heightOne : heightTwo;
+
+    return returnValue;
+  }
+
+  /**
    * Merge the selection buffer onto the current image layer.
    *
    * <p>This method dispatches the {@link pwlib.appEvent.selectionChange} 
@@ -1232,13 +1290,29 @@ pwlib.tools.selection = function (app) {
     // The default position for the pasted image is the top left corner of the 
     // visible area, taking into consideration the zoom level.
     var x = MathRound(gui.elems.viewport.scrollLeft / image.canvasScale),
-        y = MathRound(gui.elems.viewport.scrollTop  / image.canvasScale),
-        w = app.clipboard.width,
-        h = app.clipboard.height;
+        y = MathRound(gui.elems.viewport.scrollTop  / image.canvasScale);
+
+    // Take into account rotation
+    var rotatedDimensions = rotationDimensions(app.clipboard.width, 
+      app.clipboard.height);
+    var w = rotatedDimensions.width,
+        h = rotatedDimensions.height;
 
     sel.canvas.width  = w;
     sel.canvas.height = h;
-    sel.context.putImageData(app.clipboard, 0, 0);
+
+    var tmpCanvas = app.doc.createElement('canvas'),
+        radians = config.rotation * Math.PI/180;
+    tmpCanvas.getContext('2d').putImageData(app.clipboard, 0, 0);
+    sel.context.save();
+    sel.context.translate(x+(w/2), y+(h/2));
+    sel.context.rotate(radians);
+    sel.context.translate(-(x+(w/2)), -(y+(h/2)));
+    sel.context.drawImage(tmpCanvas, 0, 0);
+    sel.context.restore();
+//    sel.context.putImageData(app.clipboard, 0, 0);
+
+    delete tmpCanvas;
 
     if (_self.state === _self.STATE_SELECTED) {
       bufferContext.clearRect(sel.x, sel.y, sel.width, sel.height);
@@ -1380,7 +1454,7 @@ pwlib.tools.selection = function (app) {
    * @returns {Boolean} True if the operation was successful, or false if not.
    */
   this.selectionCrop = function () {
-    if (_self.state !== _self.STATE_SELECTED) {
+    if (_self.state !== _self.STATE_SELECTED || !config.imageResizeable) {
       return false;
     }
 
@@ -1402,6 +1476,150 @@ pwlib.tools.selection = function (app) {
 
     return true;
   };
+
+  /**
+   * This method is used to invert an image horizontally within a selected 
+   * area.
+   *
+   * @returns {Boolean} True if the operation was successful, or false if not.
+   */
+  this.selectionFlipHorizontal = function() {
+    var contextToManipulate = sel.layerCleared ? bufferContext : layerContext;
+
+    if (!contextToManipulate.getImageData || 
+        !contextToManipulate.putImageData) {
+      alert(lang.errorFlippingUnsupported);
+      return false;
+    }
+
+    var imageData = contextToManipulate.getImageData(sel.x, sel.y, 
+      sel.width, sel.height);
+    var imagePixels = imageData.data;
+
+    var imageDataReplace = contextToManipulate.createImageData(
+      sel.width, sel.height);
+    var imagePixelsReplace = imageDataReplace.data;
+    
+    for (var iy = 0; iy < imageData.height; iy++) {
+      for (var ix = 0; ix < imageData.width; ix++) {
+        var from = (iy*imageData.width*4) + (ix*4);
+        var to = ((iy*imageData.width*4) + (imageData.width*4)) - (ix*4);
+
+
+        imagePixelsReplace[to] = imagePixels[from];
+        imagePixelsReplace[to+1] = imagePixels[from+1];
+        imagePixelsReplace[to+2] = imagePixels[from+2];
+        imagePixelsReplace[to+3] = imagePixels[from+3];
+      }
+    }
+
+    contextToManipulate.clearRect(sel.x, sel.y, sel.width, sel.height);
+    contextToManipulate.putImageData(imageDataReplace, sel.x, sel.y);
+
+    if (!sel.layerCleared) {
+      app.historyAdd();
+    } else {
+      sel.context.drawImage(contextToManipulate, sel.x, sel.y, 
+        sel.width, sel.height, 0, 0, widthOriginal, heightOriginal);
+    }
+
+    return true;
+  }
+
+  /**
+   * This method is used to invert an image vertically within a selected 
+   * area.
+   *
+   * @returns {Boolean} True if the operation was successful, or false if not.
+   */
+  this.selectionFlipVertical = function() {
+    var contextToManipulate = sel.layerCleared ? bufferContext : layerContext;
+
+    if (!contextToManipulate.getImageData || 
+        !contextToManipulate.putImageData) {
+      alert(lang.errorFlippingUnsupported);
+      return false;
+    }
+
+    var imageData = contextToManipulate.getImageData(sel.x, sel.y,
+      sel.width, sel.height);
+    var imagePixels = imageData.data;
+
+    var imageDataReplace = contextToManipulate.createImageData(
+      sel.width, sel.height);
+    var imagePixelsReplace = imageDataReplace.data;
+
+    for (var iy = 0; iy < imageData.height; iy++) {
+      for (var ix = 0; ix < imageData.width; ix++) {
+        var from = (iy*imageData.width*4) + (ix*4);
+        var to = ((imageData.height - iy)*imageData.width*4) + (ix*4);
+
+        imagePixelsReplace[to] = imagePixels[from];
+        imagePixelsReplace[to+1] = imagePixels[from+1];
+        imagePixelsReplace[to+2] = imagePixels[from+2];
+        imagePixelsReplace[to+3] = imagePixels[from+3];
+      }
+    }
+
+    contextToManipulate.clearRect(sel.x, sel.y, sel.width, sel.height);
+    contextToManipulate.putImageData(imageDataReplace, sel.x, sel.y);
+    
+    if (!sel.layerCleared) {
+      app.historyAdd();
+    } else {
+      sel.context.drawImage(contextToManipulate, sel.x, sel.y,
+        sel.width, sel.height, 0, 0, widthOriginal, heightOriginal);
+    }
+
+    return true;
+  }
+
+  /**
+   * This method rotates the selected content.
+   * 
+   * @returns {Boolean} True if the operation was successful, or false if not.
+   */
+  this.selectionRotate = function() {
+    // create new canvas
+    var tempCanvas = app.doc.createElement('canvas');
+    if (!tempCanvas) {
+      alert(lang.errorToolActivate);
+      return false;
+    }
+
+    // Calculate the radians
+    var radians = config.rotation * Math.PI/180;
+
+    // Set canvas width/height
+    tempCanvas.width = sel.width;
+    tempCanvas.height = sel.height;
+
+    // get image data from main canvas
+    var rotateAroundX = Math.floor(sel.width/2);
+    var rotateAroundY = Math.floor(sel.height/2);
+
+    var tmpContext = tempCanvas.getContext('2d');
+    tmpContext.save();
+    tmpContext.translate(rotateAroundX, rotateAroundY);
+    tmpContext.rotate(radians);
+    tmpContext.translate(-rotateAroundX, -rotateAroundY);
+    tmpContext.drawImage(layerCanvas, sel.x, sel.y, sel.width, sel.height,
+      0, 0, sel.width, sel.height);
+    tmpContext.restore();
+
+    // clear content in selected area of main canvas
+    layerContext.clearRect(sel.x, sel.y, sel.width, sel.height);
+
+    // draw image back on canvas at new coordinates
+    layerContext.drawImage(tempCanvas, sel.x, sel.y, sel.width, sel.height);
+
+    // delete temporary data
+    delete tempCanvas;
+
+    app.historyAdd();
+
+    return true;
+  }
 
   /**
    * The <code>keydown</code> event handler. This method calls selection-related 
