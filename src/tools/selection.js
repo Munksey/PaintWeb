@@ -107,6 +107,12 @@ pwlib.tools.selection = function (app) {
   this.STATE_RESIZING = 4;
 
   /**
+   * The user is rotating the selection rectangle.
+   * @constant
+   */
+  this.STATE_ROTATING = 5;
+
+  /**
    * Selection state. Known states:
    *
    * <ul>
@@ -127,6 +133,9 @@ pwlib.tools.selection = function (app) {
    *   dragging/moving the current selection.
    *
    *   <li>{@link pwlib.tools.selection#STATE_RESIZING} - The user is resizing 
+   *   the current selection.
+   *
+   *   <li>{@link.pwlib.tools.selection#STATE_ROTATING} - The user is rotating
    *   the current selection.
    * </ul>
    *
@@ -195,6 +204,13 @@ pwlib.tools.selection = function (app) {
      * @type Number
      */
     heightOriginal: 0,
+
+    /**
+     * Is the selection canvas being rotated?
+     * @type Boolean
+     * @default false
+     */
+    rotate: true,
 
     /**
      * Tells if the selected ImageData has been cut out or not from the 
@@ -397,10 +413,6 @@ pwlib.tools.selection = function (app) {
     app.commandUnregister('selectionFlipHorizontal');
     app.commandUnregister('selectionFlipVertical');
 
-    // Make sure layer context is not feeling the wrath of
-    // the rotation
-    layerContext.setTransform(1, 0, 0, 1, 0, 0);
-
     return true;
   };
 
@@ -471,11 +483,16 @@ pwlib.tools.selection = function (app) {
         // 'border' for resize (the user is clicking on the borders).
         _self.state = _self.STATE_RESIZING;
         gui.statusShow('selectionResize');
+        break;
+
+      case 'rotation':
+        _self.state = _self.STATE_ROTATING;
+        gui.statusShow('selectionRotate');
     }
 
     // Temporarily toggle the transformation mode if the user holds the Control 
-    // key down.
-    if (ev.ctrlKey) {
+    // key down, unless we're in rotation mode.
+    if (ev.ctrlKey && this.state !== this.STATE_ROTATING) {
       config.transform = !config.transform;
     }
 
@@ -540,6 +557,10 @@ pwlib.tools.selection = function (app) {
 
       case _self.STATE_RESIZING:
         selectionResize();
+        break;
+      
+      case _self.STATE_ROTATING:
+        selectionRotate(bufferContext);
     }
 
     needsRedraw = false;
@@ -565,7 +586,7 @@ pwlib.tools.selection = function (app) {
     needsRedraw = false;
 
     shiftKey = ev.shiftKey;
-    if (ctrlKey) {
+    if (ctrlKey && this.state !== this.STATE_ROTATING) {
       config.transform = !config.transform;
     }
 
@@ -576,12 +597,18 @@ pwlib.tools.selection = function (app) {
 
       return true;
 
-    } else if (!lastSel) {
+    } else if (!lastSel && _self.state !== _self.STATE_ROTATING) {
       _self.state = _self.STATE_NONE;
       marqueeHide();
       gui.statusShow('selectionActive');
       app.events.dispatch(new appEvent.selectionChange(_self.state));
 
+      return true;
+    } else if (_self.state === _self.STATE_ROTATING) {
+      selectionMergeStrict();
+      _self.state = _self.STATE_NONE;
+      marqueeHide();
+      app.events.dispatch(new appEvent.selectionChange(_self.state));
       return true;
     }
 
@@ -657,6 +684,26 @@ pwlib.tools.selection = function (app) {
   };
 
   /**
+   * Rotates the marquee.
+   * @private
+   */
+  function marqueeRotate(radians) {
+    rotateStyle = "rotate(" + radians + "rad)";
+    if ('transform' in marqueeStyle) {
+      marqueeStyle.transform = rotateStyle;
+    } else if ('webkitTransform' in marqueeStyle) {
+      marqueeStyle.webkitTransform = rotateStyle;
+    } else if ('MozTransform' in marqueeStyle) {
+      marqueeStyle.MozTransform = rotateStyle;
+    } else {
+      alert(lang.errorMarqueeRotate);
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Hide the selection marquee element.
    * @private
    */
@@ -667,6 +714,7 @@ pwlib.tools.selection = function (app) {
     marqueeStyle.width   = '1px';
     marqueeStyle.height  = '1px';
     marqueeStyle.cursor  = '';
+    marqueeRotate(0);
   };
 
   /**
@@ -921,7 +969,12 @@ pwlib.tools.selection = function (app) {
         cursor += 'e';
       }
 
-      if (cursor !== '') {
+      // At a corner with rotation mode on?
+      if (sel.rotate == true && config.transform && (cursor === 'nw' || 
+          cursor === 'ne' || cursor === "sw" || cursor === "se")) {
+        cursor = 'wait';
+        mouseArea = 'rotation';
+      } else if (cursor !== '') {
         mouseResize = cursor;
         cursor += '-resize';
         mouseArea = 'border';
@@ -1052,8 +1105,13 @@ pwlib.tools.selection = function (app) {
       layerContext.fillRect(sel.x, sel.y, sel.width, sel.height);
     }
 
-    layerContext.drawImage(sel.canvas, sel.x, sel.y, sel.width, sel.height);
-    bufferContext.clearRect(sel.x, sel.y, sel.width, sel.height);
+    if (_self.state == _self.STATE_ROTATING) {
+      selectionRotate(layerContext);
+      bufferContext.clearRect(0, 0, image.width, image.height);
+    } else {
+      layerContext.drawImage(sel.canvas, sel.x, sel.y, sel.width, sel.height);
+      bufferContext.clearRect(sel.x, sel.y, sel.width, sel.height);
+    }
 
     sel.layerCleared  = false;
     sel.canvas.width  = 5;
@@ -1063,51 +1121,40 @@ pwlib.tools.selection = function (app) {
   };
 
   /**
-   * Determines the new dimensions for a rotation when given a specific
-   * height and width.
+   * Called to reposition the canvas based on the movement.
    *
-   * @param {Number} width The width for which we are rotating.
-   * @param {Number} height The height for which we are rotating.
+   * @param {CanvasRenderingContext2D} context The context to draw rotation on.
    *
-   * @returns {JSON} An array containing width and height.
+   * @return {Boolean} 
    */
-  function rotationDimensions(width, height) {
-    var returnValue = {"width": 0, "height": 0};
-    var radians = config.rotation * Math.PI/180;
+  function selectionRotate(context) {
+    // Determine the origin of the rotation
+    var originX = sel.x + (sel.width/2);
+    var originY = sel.y + (sel.height/2);
 
-    // To help determine the new width and new height, 
-    // divide the width and height by 2 to emulate
-    // a rotation around the origin.
-    width = width/2;
-    height = height/2;
+    // Calculate the number of radians the user has moved their mouse
+    // around the origin
+    var angleStart = Math.atan2(originX - x0, originY - y0);
+    var angleEnd = Math.atan2(originX - mouse.x, originY - mouse.y);
 
-    // Select two adjacent points to rotate. This will
-    // help determine the furthest x points and furthest y
-    // points. Allowing determination of the new height and width.
-    var pointOne = {"x": width, "y": height};
-    var pointTwo = {"x": -width, "y": height};
+    // How far has the object rotated?
+    var difference = angleStart - angleEnd;
+    if (marqueeRotate(difference)) {
+      if (context === bufferContext) {
+        context.clearRect(0, 0, image.width, image.height);
+      }
+      context.save();
+      context.translate(originX, originY);
+      context.rotate(difference);
+      context.translate(-originX, -originY);
+      context.drawImage(sel.canvas, sel.x, sel.y, sel.width, sel.height);
+      context.restore();
+      sel.rotation = difference;
 
-    // Calculate the points once rotated.
-    var rotatedPointOne = {
-      "x": (pointOne.x * Math.cos(radians)) - (pointOne.y * Math.sin(radians)),
-      "y": (pointOne.x * Math.sin(radians)) + (pointOne.y * Math.cos(radians))
-    };
-    var rotatedPointTwo = {
-      "x": (pointTwo.x * Math.cos(radians)) - (pointTwo.y * Math.sin(radians)),
-      "y": (pointTwo.y * Math.sin(radians)) - (pointTwo.y * Math.cos(radians))
-    };
+      return true;
+    }
 
-    // Determine the width and height to use, so the rotation
-    // can be fit within a square.
-    var widthOne = Math.floor(Math.abs(rotatedPointOne.x)*2);
-    var widthTwo = Math.floor(Math.abs(rotatedPointTwo.x)*2);
-    returnValue.width = (widthOne > widthTwo) ? widthOne : widthTwo;
-
-    var heightOne = Math.floor(Math.abs(rotatedPointOne.y)*2);
-    var heightTwo = Math.floor(Math.abs(rotatedPointTwo.y)*2);
-    returnValue.height = (heightOne > heightTwo) ? heightOne : heightTwo;
-
-    return returnValue;
+    return false;
   }
 
   /**
@@ -1290,29 +1337,9 @@ pwlib.tools.selection = function (app) {
     // The default position for the pasted image is the top left corner of the 
     // visible area, taking into consideration the zoom level.
     var x = MathRound(gui.elems.viewport.scrollLeft / image.canvasScale),
-        y = MathRound(gui.elems.viewport.scrollTop  / image.canvasScale);
-
-    // Take into account rotation
-    var rotatedDimensions = rotationDimensions(app.clipboard.width, 
-      app.clipboard.height);
-    var w = rotatedDimensions.width,
-        h = rotatedDimensions.height;
-
-    sel.canvas.width  = w;
-    sel.canvas.height = h;
-
-    var tmpCanvas = app.doc.createElement('canvas'),
-        radians = config.rotation * Math.PI/180;
-    tmpCanvas.getContext('2d').putImageData(app.clipboard, 0, 0);
-    sel.context.save();
-    sel.context.translate(x+(w/2), y+(h/2));
-    sel.context.rotate(radians);
-    sel.context.translate(-(x+(w/2)), -(y+(h/2)));
-    sel.context.drawImage(tmpCanvas, 0, 0);
-    sel.context.restore();
-//    sel.context.putImageData(app.clipboard, 0, 0);
-
-    delete tmpCanvas;
+        y = MathRound(gui.elems.viewport.scrollTop  / image.canvasScale),
+        w = app.clipboard.width,
+        h = app.clipboard.height;
 
     if (_self.state === _self.STATE_SELECTED) {
       bufferContext.clearRect(sel.x, sel.y, sel.width, sel.height);
@@ -1520,7 +1547,7 @@ pwlib.tools.selection = function (app) {
       app.historyAdd();
     } else {
       sel.context.drawImage(contextToManipulate, sel.x, sel.y, 
-        sel.width, sel.height, 0, 0, widthOriginal, heightOriginal);
+        sel.width, sel.height);
     }
 
     return true;
@@ -1568,55 +1595,8 @@ pwlib.tools.selection = function (app) {
       app.historyAdd();
     } else {
       sel.context.drawImage(contextToManipulate, sel.x, sel.y,
-        sel.width, sel.height, 0, 0, widthOriginal, heightOriginal);
+        sel.width, sel.height);
     }
-
-    return true;
-  }
-
-  /**
-   * This method rotates the selected content.
-   * 
-   * @returns {Boolean} True if the operation was successful, or false if not.
-   */
-  this.selectionRotate = function() {
-    // create new canvas
-    var tempCanvas = app.doc.createElement('canvas');
-    if (!tempCanvas) {
-      alert(lang.errorToolActivate);
-      return false;
-    }
-
-    // Calculate the radians
-    var radians = config.rotation * Math.PI/180;
-
-    // Set canvas width/height
-    tempCanvas.width = sel.width;
-    tempCanvas.height = sel.height;
-
-    // get image data from main canvas
-    var rotateAroundX = Math.floor(sel.width/2);
-    var rotateAroundY = Math.floor(sel.height/2);
-
-    var tmpContext = tempCanvas.getContext('2d');
-    tmpContext.save();
-    tmpContext.translate(rotateAroundX, rotateAroundY);
-    tmpContext.rotate(radians);
-    tmpContext.translate(-rotateAroundX, -rotateAroundY);
-    tmpContext.drawImage(layerCanvas, sel.x, sel.y, sel.width, sel.height,
-      0, 0, sel.width, sel.height);
-    tmpContext.restore();
-
-    // clear content in selected area of main canvas
-    layerContext.clearRect(sel.x, sel.y, sel.width, sel.height);
-
-    // draw image back on canvas at new coordinates
-    layerContext.drawImage(tempCanvas, sel.x, sel.y, sel.width, sel.height);
-
-    // delete temporary data
-    delete tempCanvas;
-
-    app.historyAdd();
 
     return true;
   }

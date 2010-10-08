@@ -34,6 +34,7 @@
   "errorInsertimg": "The image could not be inserted. Maybe the address does not point to an image.",
   "errorInsertimgHost": "The URL you provided points to a different host. The image cannot be added for security reasons.",
   "errorInsertimgNotLoaded": "The image did not load yet, or the URL you provided does not point to an image.",
+  "errorMarqueeRotate": "Error: your browser does not support CSS transformations. Rotation cannot be used.",
   "promptInsertimg": "Type the address of the image you want to insert:",
   "promptImageDimensions": "Please input the new image dimensions you want.",
   "promptTextFont": "Type the name of the font you want:",
@@ -114,6 +115,7 @@
     "selectionCut": "Cut selection",
     "selectionDelete": "Delete selection",
     "selectionFill": "Fill the selection",
+    "selectionRotate": "Rotate the selection",
     "selectionFlipHorizontal": "Flip selection horizontally",
     "selectionFlipVertical": "Flip selection vertically"
   },
@@ -144,9 +146,7 @@
       "transform": "Image manipulation",
       "transformTitle": "If checked, the selected pixels will also be dragged/resized when you make changes to the selection. If unchecked, only the selection marquee will be dragged/resized - pixels will remain unaffected by any such changes.",
       "transparent": "Transparent selection",
-      "transparentTitle": "If checked, the background will remain transparent. If unchecked, the background will be filled with the current fill color.",
-      "rotation": "Rotate ",
-      "rotationTitle": "Will rotate any pasted content in the amount of degrees specified."
+      "transparentTitle": "If checked, the background will remain transparent. If unchecked, the background will be filled with the current fill color."
     },
     "text": {
       "bold": "Bold",

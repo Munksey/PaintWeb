@@ -1798,7 +1798,7 @@ pwlib.gui = function (app) {
         _self.elems.selTab_selectionCut, _self.elems.selTab_selectionCopy, 
         _self.commands.selectionDelete, _self.commands.selectionFill, 
         _self.commands.selectionCrop, _self.commands.selectionFlipHorizontal,
-        _self.commands.selectionFlipVertical];
+        _self.commands.selectionFlipVertical, _self.commands.selectionRotate];
 
     for (var i = 0, n = elems.length; i < n; i++) {
       elem = elems[i];

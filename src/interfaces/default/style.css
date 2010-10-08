@@ -503,14 +503,17 @@
 .paintweb_main_selection .paintweb_cmd_selectionCopy,
 .paintweb_main_selection .paintweb_cmd_clipboardPaste,
 .paintweb_main_selection .paintweb_cmd_selectionFlipHorizontal,
-.paintweb_main_selection .paintweb_cmd_selectionFlipVertical { border-left: 0 }
+.paintweb_main_selection .paintweb_cmd_selectionFlipVertical { 
+  border-left: 0 
+}
 
 .paintweb_cmd_selectionCrop {
   border-top: 0;
   clear: left
 }
 
-.paintweb_cmd_selectionDelete, .paintweb_cmd_selectionFill {
+.paintweb_cmd_selectionDelete, .paintweb_cmd_selectionFill, 
+.paintweb_cmd_selectionRotate {
   border-left: 0;
   border-top: 0
 }
@@ -525,25 +528,12 @@
   padding: 0 5px;
   top: 0;
   vertical-align: middle;
-  width: 150px; /* 15em */
+  width: 15em
 }
 
 .paintweb_opt_selectionTransform {
   border-top: 0;
   top: 33px
-}
-
-.paintweb_opt_selectionRotate {
-  background: #f2f2f2;
-  border: 1px solid #d6d6d6;
-  left: 340px;
-  position: absolute;
-  line-height: 31px;
-  margin: 0;
-  padding: 0 5px;
-  top: 0;
-  vertical-align: middle;
-  width: 160px; /* 15em */
 }
 
 .paintweb_cfg_selection_rotation {
@@ -987,6 +977,8 @@
 .paintweb_cmd_selectionCrop a { background-image: url('icons/selectionCrop.png') }
 
 .paintweb_cmd_selectionDelete a { background-image: url('icons/selectionDelete.png') }
+
+.paintweb_cmd_selectionRotate a { background-image: url('icons/selectionRotate.png') }
 
 .paintweb_cmd_selectionFill a { background-image: url('icons/selectionFill.png') }
 
