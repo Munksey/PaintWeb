@@ -115,7 +115,7 @@
     "selectionCut": "Cut selection",
     "selectionDelete": "Delete selection",
     "selectionFill": "Fill the selection",
-    "selectionRotate": "Rotate the selection",
+    "selectionRotation": "Rotate the selection",
     "selectionFlipHorizontal": "Flip selection horizontally",
     "selectionFlipVertical": "Flip selection vertically"
   },
