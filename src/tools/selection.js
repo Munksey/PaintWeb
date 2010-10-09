@@ -46,6 +46,7 @@ pwlib.tools.selection = function (app) {
       MathMin       = Math.min,
       MathRound     = Math.round,
       mouse         = app.mouse,
+      rotationCursor = 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAfCAYAAAAfrhY5AAAACXBIWXMAAAsTAAALEwEAmpwYAAAABGdBTUEAALGOfPtRkwAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAAC6klEQVR42mL8//8/w0ABgABiYhhAABBAA2o5QAANqOUAAcRCjqbz588L3blzR+XTp098bGxsv+Tk5B7Z29s/INUcgAAiyfIJEyYEzJo1K/3p06dSAgICH0D427dvXG/evBHh4OD4ERYWtjotLW2Wtrb2F2LMAwggBlBqJ4RBlsrLyx80NDRc39vbG3T58mUedDVLly618vb2nioiInI6MTGxjhhzAQKIoIK4uLhGRUXF/fPmzXMixsDjx49LuLi4zNbT09tISC1AABG0WF9ffyMxlqLjjIyMCg0Nje341AAEEE6JSZMm+UlJSR0lx2IYDggI6Pfw8JiOSx4ggHBqFBMTO7lgwQIHSiwHYT4+vos7duzQwCYHEEA4E5iOjs5mSi0G4aKiojxjY+O12OQAAgirBlVV1d19fX1B1LD85s2bwKKA7ea+ffuU0OUAAogJWwHy/PlzCWBc7aBGKaampvYLiG8dPnzYBl0OIIAwLL9165aaoKDgB01NzW/UKka1tLSu3bt3TxldHCCAMCz//PkzD9Dyd9QswyUkJF6CSkF0cYAAwrCcnZ39F6jIpKblwDqAn4eHB6PIBQggDMtBlcTr16/FqGk5MCpVZGVlH6OLAwQQ1hQKKp+XL19uQWlKv3r1KldpaWmWsLDw2U2bNumhywMEEFZNmZmZZfhKJmJxY2NjHNCDoHba/9mzZ7ugywMEEFZNN27c4ADG0eWzZ88KUWK5iYnJaqDF90EF1v79+xXQ5QECCG+lYmtru5hci0+fPg1K3fejo6NbcakBCCC8BgAbBVtBtRM5loPq/a6urjB8agACiKAhwMJme2hoaPfdu3eZqFHcImOAACLYgLx27Zrn169fuaytrY+WlJTkAPlUKwMAAohoV27dulXL3Nx8JSgh6urqbgaFBrC8lqHE5wABxEhqjwWYapWOHj1qBWy9qkZGRi53d3e/Qa7HAQKIcSC7SwABNKCdBoAAGlDLAQJoQC0HCDAAKZYc/O7bNMEAAAAASUVORK5CYII=")',
       setInterval   = app.win.setInterval,
       snapXY        = app.toolSnapXY;
 
@@ -210,7 +211,7 @@ pwlib.tools.selection = function (app) {
      * @type Boolean
      * @default false
      */
-    rotate: true,
+    rotate: false,
 
     /**
      * Tells if the selected ImageData has been cut out or not from the 
@@ -362,6 +363,7 @@ pwlib.tools.selection = function (app) {
     app.commandRegister('selectionCrop',   _self.selectionCrop);
     app.commandRegister('selectionDelete', _self.selectionDelete);
     app.commandRegister('selectionFill',   _self.selectionFill);
+    app.commandRegister('selectionRotation', _self.selectionRotation);
     app.commandRegister('selectionFlipHorizontal', 
       _self.selectionFlipHorizontal);
     app.commandRegister('selectionFlipVertical', 
@@ -410,6 +412,7 @@ pwlib.tools.selection = function (app) {
     app.commandUnregister('selectionCrop');
     app.commandUnregister('selectionDelete');
     app.commandUnregister('selectionFill');
+    app.commandUnregister('selectionRotation');
     app.commandUnregister('selectionFlipHorizontal');
     app.commandUnregister('selectionFlipVertical');
 
@@ -451,6 +454,10 @@ pwlib.tools.selection = function (app) {
 
     // STATE_SELECTED: selection available.
     mouseAreaUpdate();
+    
+    // Now that the area has been updated, set rotation
+    // to false, since it's not needed
+    sel.rotate = false;
 
     /*
      * Check if the user clicked outside the selection: drop the selection, 
@@ -609,6 +616,7 @@ pwlib.tools.selection = function (app) {
       _self.state = _self.STATE_NONE;
       marqueeHide();
       app.events.dispatch(new appEvent.selectionChange(_self.state));
+
       return true;
     }
 
@@ -942,12 +950,16 @@ pwlib.tools.selection = function (app) {
 
     mouseArea = 'out';
 
-    // Inside the rectangle
-    if (mouse.x < x1_in && mouse.y < y1_in &&
+    if (sel.rotate == true && mouse.x >= x0_out && mouse.x <= x1_out
+      && mouse.y >= y0_out && mouse.y <= y1_out) {
+      // Rotation is on, use rotation mouse cursor
+      cursor = 'progress';
+      mouseArea = 'rotation';
+    } else if (mouse.x < x1_in && mouse.y < y1_in &&
         mouse.x > x0_in && mouse.y > y0_in) {
+      // Inside the rectangle
       cursor = 'move';
       mouseArea = 'in';
-
     } else {
       // On one of the borders (north/south)
       if (mouse.x >= x0_out && mouse.x <= x1_out &&
@@ -969,12 +981,7 @@ pwlib.tools.selection = function (app) {
         cursor += 'e';
       }
 
-      // At a corner with rotation mode on?
-      if (sel.rotate == true && config.transform && (cursor === 'nw' || 
-          cursor === 'ne' || cursor === "sw" || cursor === "se")) {
-        cursor = 'wait';
-        mouseArea = 'rotation';
-      } else if (cursor !== '') {
+      if (cursor !== '') {
         mouseResize = cursor;
         cursor += '-resize';
         mouseArea = 'border';
@@ -1602,6 +1609,15 @@ pwlib.tools.selection = function (app) {
   }
 
   /**
+   * This command puts the selection into rotation mode.
+   *
+   * @returns {Boolean} True on success, false on failure
+   */
+  this.selectionRotation = function() {
+    sel.rotate = true;
+  }
+
+  /**
    * The <code>keydown</code> event handler. This method calls selection-related 
    * commands associated to keyboard shortcuts.
    *
@@ -1623,15 +1639,19 @@ pwlib.tools.selection = function (app) {
         break;
 
       case config.keys.selectionCrop:
+        sel.rotate = false;
         return _self.selectionCrop(ev);
 
       case config.keys.selectionDelete:
+        sel.rotate = false;
         return _self.selectionDelete(ev);
 
       case config.keys.selectionDrop:
+        sel.rotate = false;
         return _self.selectionDrop(ev);
 
       case config.keys.selectionFill:
+        sel.rotate = false;
         return _self.selectionFill(ev);
 
       default:

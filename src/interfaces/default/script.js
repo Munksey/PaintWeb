@@ -862,12 +862,14 @@ pwlib.gui = function (app) {
     var selCrop   = this.commands.selectionCrop,
         selFill   = this.commands.selectionFill,
         selDelete = this.commands.selectionDelete,
+        selRotation = this.commands.selectionRotation,
         selFlipHorizontal = this.commands.selectionFlipHorizontal,
         selFlipVertical = this.commands.selectionFlipVertical;
 
     selCrop.className   += classDisabled;
     selFill.className   += classDisabled;
     selDelete.className += classDisabled;
+    selRotation.className += classDisabled;
     selFlipHorizontal.className += classDisabled;
     selFlipVertical.className += classDisabled;
 
@@ -1798,7 +1800,7 @@ pwlib.gui = function (app) {
         _self.elems.selTab_selectionCut, _self.elems.selTab_selectionCopy, 
         _self.commands.selectionDelete, _self.commands.selectionFill, 
         _self.commands.selectionCrop, _self.commands.selectionFlipHorizontal,
-        _self.commands.selectionFlipVertical, _self.commands.selectionRotate];
+        _self.commands.selectionFlipVertical, _self.commands.selectionRotation];
 
     for (var i = 0, n = elems.length; i < n; i++) {
       elem = elems[i];
