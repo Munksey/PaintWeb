@@ -1611,6 +1611,7 @@ pwlib.tools.selection = function (app) {
    * @returns {Boolean} True on success, false on failure
    */
   this.selectionRotation = function() {
+<<<<<<< HEAD
     sel.rotate = !sel.rotate;
     var classActive = gui.classPrefix + 'toolActive';
     if (sel.rotate) {
@@ -1618,6 +1619,9 @@ pwlib.tools.selection = function (app) {
     } else {
       this.classList.remove(classActive);
     }
+=======
+    sel.rotate = true;
+>>>>>>> 1320799cade66189fb41d22f95310e5daf3537e6
   }
 
   /**

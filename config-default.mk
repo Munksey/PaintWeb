@@ -50,13 +50,13 @@ BIN_XHTML=$(BIN_PHP) scripts/xhtml_minify.php
 
 # The script used for compressing/minifying CSS files.
 # Note that the scripts/yuicompressor script is a wrapper for YUI Compressor.
-BIN_CSS=scripts/yuicompressor
+BIN_CSS=yui-compressor
 
 # The CSS images inliner script.
 BIN_CSS_IMAGES=$(BIN_PHP) scripts/css_images.php
 
 # The script used for compressing/minifying JavaScript files
-BIN_JS=scripts/yuicompressor
+BIN_JS=yui-compressor
 
 # The script used for generating the JavaScript documentation / the API 
 # reference based on the source code. Note that the scripts/jsdoc script is 
