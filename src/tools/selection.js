@@ -1347,6 +1347,10 @@ pwlib.tools.selection = function (app) {
         w = app.clipboard.width,
         h = app.clipboard.height;
 
+    sel.canvas.width  = w;
+    sel.canvas.height = h;
+    sel.context.putImageData(app.clipboard, 0, 0);
+
     if (_self.state === _self.STATE_SELECTED) {
       bufferContext.clearRect(sel.x, sel.y, sel.width, sel.height);
     } else {
