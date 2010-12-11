@@ -157,12 +157,12 @@ pwlib.tools.cbucket = function (app) {
 
       // segment of scan line y-dy for x1 <= x <= x2 was previously filled, now 
       // explore adjacent pixels in scan line y
-      for (x = x1; x >= 0 && pixelRead(x) === pixelOld; x--) {
+      for (x = x1; x >= 0 && comparePixels(pixelOld, pixelRead(x)); x--) {
         pixelWrite(x);
       }
 
       if (x >= x1) {
-        for (x++; x <= x2 && pixelRead(x) !== pixelOld; x++);
+        for (x++; x <= x2 && !comparePixels(pixelOld, pixelRead(x)); x++);
         start = x;
         if (x > x2) {
           layer.putImageData(idata, 0, y);
@@ -179,7 +179,7 @@ pwlib.tools.cbucket = function (app) {
       }
 
       do {
-        for (; x < iwidth && pixelRead(x) === pixelOld; x++) {
+        for (; x < iwidth && comparePixels(pixelOld, pixelRead(x)); x++) {
           pixelWrite(x);
         }
 
@@ -188,7 +188,7 @@ pwlib.tools.cbucket = function (app) {
           pushLine(y, x2 + 1, x - 1, -dy);  // leak on right?
         }
 
-        for (x++; x <= x2 && pixelRead(x) !== pixelOld; x++);
+        for (x++; x <= x2 && !comparePixels(pixelOld, pixelRead(x)); x++);
         start = x;
 
       } while (x <= x2);
@@ -219,6 +219,27 @@ pwlib.tools.cbucket = function (app) {
     layerpix[r+2] = pixelNew[2];
     layerpix[r+3] = pixelNew[3];
   };
+
+  /**
+   * Compares two pixels together.
+   *
+   * @param {String} pixelOld semicolon delimited rgba of old pixel
+   * @param {String} pixelNew semicolon delimited rgba of new pixel
+   * @returns {Boolean} true if similar enough, false if not
+   */
+  var comparePixels = function(pixelOld, pixelNew) {
+    rgbaOld = pixelOld.split(";");
+    rgbaNew = pixelNew.split(";");
+
+    var returnValue = true;
+    for(var i = 0; returnValue && (i < 4); i++) {
+      returnValue = returnValue &&
+        rgbaNew[i] <= (rgbaOld[i]+config.cbucketThreshold) &&
+        rgbaNew[i] >= (rgbaOld[i]-config.cbucketThreshold);
+    }
+
+    return returnValue;
+  }
 };
 
 // vim:set spell spl=en fo=wan1croqlt tw=80 ts=2 sw=2 sts=2 sta et ai cin fenc=utf-8 ff=unix:

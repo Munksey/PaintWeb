@@ -168,6 +168,15 @@
   "strokeStyle": "rgba(0,0,255,1)",
 
   /**
+   * Threshold for the cbucket tool. It compares each color and opacity
+   * within the boundary of the threshold on the RGBA scale.
+   *
+   * @type {Integer}
+   * @default 20
+   */
+  "cbucketThreshold": 20,
+
+  /**
    * Enable checkers background. This tells the user interface to render 
    * checkers in the image background. These are visible only when parts of 
    * the image being edited are transparent.
